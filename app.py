@@ -12,7 +12,7 @@ import plotly.express as px
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="RPL Dashboard - Interactive Analytics",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="expanded"
 )
 
@@ -41,6 +41,20 @@ st.markdown("""
     .stTable {
         border-radius: 8px;
         overflow: hidden;
+    }
+
+    .block-container {
+        width: 100%;
+        max-width: 1400px;
+        padding-top: 1.25rem;
+        padding-bottom: 2rem;
+    }
+
+    @media (max-width: 900px) {
+        .block-container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -179,9 +193,114 @@ with col4:
 st.markdown("---")
 
 # -----------------------------------------------------------------------------
-# 5 KEY FINDINGS TABS
+# GENERATE VISUALIZATIONS & DATA TABLES FOR ALL 5 FINDINGS
 # -----------------------------------------------------------------------------
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+
+# Finding 1: Gender Distribution
+gender_ct = pd.crosstab(filtered_df['Gender_KH'], columns='Candidate Count')
+gender_ct['Percentage (%)'] = (gender_ct['Candidate Count'] / total_candidates * 100).round(2)
+gender_ct.loc['Total'] = [total_candidates, 100.0]
+
+gender_counts = filtered_df['Gender_KH'].value_counts().reset_index()
+gender_counts.columns = ['Gender_KH', 'Count']
+fig_gender = px.pie(
+    gender_counts, 
+    names='Gender_KH', 
+    values='Count',
+    hole=0.4,
+    title='1. Overall Gender Share (ប្រុស vs ស្រី)',
+    color='Gender_KH',
+    color_discrete_map={'ប្រុស': '#1f77b4', 'ស្រី': '#e07a5f'}
+)
+fig_gender.update_traces(textinfo='percent+label', textfont_size=14, textfont_color='black')
+fig_gender.update_layout(height=300, margin=dict(t=40, b=20, l=20, r=20))
+
+# Finding 2: Occupation (មុខរបរ)
+occ_ct = pd.crosstab(filtered_df['Occupation_KH'], filtered_df['Gender_KH'], margins=True, margins_name='Total')
+for col in ['ប្រុស', 'ស្រី']:
+    if col not in occ_ct.columns:
+        occ_ct[col] = 0
+occ_ct = occ_ct[['ប្រុស', 'ស្រី', 'Total']].sort_values(by='Total', ascending=False)
+
+occ_chart_df = filtered_df.groupby(['Occupation_KH', 'Gender_KH']).size().reset_index(name='Count')
+top_occs = occ_ct.drop('Total').head(8).index.tolist()
+occ_chart_df = occ_chart_df[occ_chart_df['Occupation_KH'].isin(top_occs)]
+
+fig_occ = px.bar(
+    occ_chart_df,
+    y='Occupation_KH',
+    x='Count',
+    color='Gender_KH',
+    barmode='stack',
+    orientation='h',
+    title='2. Top Certified Occupations by Gender (មុខរបរ)',
+    color_discrete_map={'ប្រុស': '#1f77b4', 'ស្រី': '#e07a5f'}
+)
+fig_occ.update_layout(yaxis={'categoryorder':'total ascending'}, height=300, yaxis_title='', xaxis_title='Candidate Count')
+
+# Finding 3: Assessment Center (AT)
+at_ct = pd.crosstab(filtered_df['AT_KH'], filtered_df['Gender_KH'], margins=True, margins_name='Total')
+for col in ['ប្រុស', 'ស្រី']:
+    if col not in at_ct.columns:
+        at_ct[col] = 0
+at_ct = at_ct[['ប្រុស', 'ស្រី', 'Total']].sort_values(by='Total', ascending=False)
+
+at_chart_df = filtered_df.groupby(['AT_KH', 'Gender_KH']).size().reset_index(name='Count')
+fig_at = px.bar(
+    at_chart_df,
+    y='AT_KH',
+    x='Count',
+    color='Gender_KH',
+    barmode='stack',
+    orientation='h',
+    title='3. Assessment Centers by Gender (មជ្ឈមណ្ឌលវាយតម្លៃសមត្ថភាព)',
+    color_discrete_map={'ប្រុស': '#1f77b4', 'ស្រី': '#e07a5f'}
+)
+fig_at.update_layout(yaxis={'categoryorder':'total ascending'}, height=300, yaxis_title='', xaxis_title='Candidate Count')
+
+# Finding 4: Qualification Level (NQ)
+nq_ct = pd.crosstab(filtered_df['NQ_KH'], filtered_df['Gender_KH'], margins=True, margins_name='Total')
+for col in ['ប្រុស', 'ស្រី']:
+    if col not in nq_ct.columns:
+        nq_ct[col] = 0
+nq_ct = nq_ct[['ប្រុស', 'ស្រី', 'Total']].sort_values(by='Total', ascending=False)
+
+nq_chart_df = filtered_df.groupby(['NQ_KH', 'Gender_KH']).size().reset_index(name='Count')
+fig_nq = px.bar(
+    nq_chart_df,
+    x='NQ_KH',
+    y='Count',
+    color='Gender_KH',
+    barmode='group',
+    title='4. National Qualification Levels by Gender (កម្រិតសញ្ញាបត្រ)',
+    color_discrete_map={'ប្រុស': '#1f77b4', 'ស្រី': '#e07a5f'}
+)
+fig_nq.update_layout(height=300, xaxis_title='', yaxis_title='Candidate Count')
+
+# Finding 5: Sponsor (ដៃគូឧបត្ថម្ភ)
+sp_ct = pd.crosstab(filtered_df['Sponsors'], filtered_df['Gender_KH'], margins=True, margins_name='Total')
+for col in ['ប្រុស', 'ស្រី']:
+    if col not in sp_ct.columns:
+        sp_ct[col] = 0
+sp_ct = sp_ct[['ប្រុស', 'ស្រី', 'Total']].sort_values(by='Total', ascending=False)
+
+sp_chart_df = filtered_df.groupby(['Sponsors', 'Gender_KH']).size().reset_index(name='Count')
+fig_sp = px.bar(
+    sp_chart_df,
+    x='Sponsors',
+    y='Count',
+    color='Gender_KH',
+    barmode='stack',
+    title='5. Sponsorship Distribution by Gender (ដៃគូឧបត្ថម្ភ)',
+    color_discrete_map={'ប្រុស': '#1f77b4', 'ស្រី': '#e07a5f'}
+)
+fig_sp.update_layout(height=300, xaxis_title='', yaxis_title='Candidate Count')
+
+# -----------------------------------------------------------------------------
+# DASHBOARD TABS (INCLUDING NEW SUMMARY DASHBOARD TAB)
+# -----------------------------------------------------------------------------
+tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "Dashboard Overview",
     "1. Gender Distribution", 
     "2. Occupation (មុខរបរ)", 
     "3. Assessment Center (AT)", 
@@ -190,19 +309,52 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 ])
 
 # -----------------------------------------------------------------------------
+# TAB 0: DASHBOARD OVERVIEW (ALL 5 GRAPHS)
+# -----------------------------------------------------------------------------
+with tab0:
+    st.subheader("Dashboard Overview - All 5 Analytics Graphs")
+    st.markdown("Comprehensive visual overview of all 5 key dataset findings based on active date filters.")
+    
+    # Row 1: Gender Distribution & Top Occupations
+    r1_col1, r1_col2 = st.columns(2)
+    with r1_col1:
+        st.plotly_chart(fig_gender, use_container_width=True, key="dash_fig_gender")
+    with r1_col2:
+        st.plotly_chart(fig_occ, use_container_width=True, key="dash_fig_occ")
+        
+    # Row 2: Assessment Center & National Qualifications
+    r2_col1, r2_col2 = st.columns(2)
+    with r2_col1:
+        st.plotly_chart(fig_at, use_container_width=True, key="dash_fig_at")
+    with r2_col2:
+        st.plotly_chart(fig_nq, use_container_width=True, key="dash_fig_nq")
+        
+    # Row 3: Sponsors Distribution & Key Highlights Summary
+    r3_col1, r3_col2 = st.columns([1.2, 1])
+    with r3_col1:
+        st.plotly_chart(fig_sp, use_container_width=True, key="dash_fig_sp")
+    with r3_col2:
+        st.markdown("#### Executive Summary Highlights")
+        st.info(f"""
+        - **Total Active Candidates:** {total_candidates:,}
+        - **Male Ratio:** {male_count:,} ({(male_count/total_candidates*100):.1f}%)
+        - **Female Ratio:** {female_count:,} ({female_pct:.1f}%)
+        - **Top Occupation:** {occ_ct.index[0] if len(occ_ct) > 1 else 'N/A'}
+        - **Top Assessment Center:** {at_ct.index[0] if len(at_ct) > 1 else 'N/A'}
+        - **Top Qualification Level:** {nq_ct.index[0] if len(nq_ct) > 1 else 'N/A'}
+        - **Top Sponsor:** {sp_ct.index[0] if len(sp_ct) > 1 else 'N/A'}
+        """)
+
+# -----------------------------------------------------------------------------
 # TAB 1: OVERALL GENDER DISTRIBUTION
 # -----------------------------------------------------------------------------
 with tab1:
-    st.subheader("Finding 1: Overall Gender Distribution (សមាសភាពយោធិន/បេក្ខជន តាមភេទ)")
+    st.subheader("Finding 1: Overall Gender Distribution (បេក្ខជន តាមភេទ)")
     
     col_left, col_right = st.columns([1, 1.2])
     
     with col_left:
         st.markdown("#### Gender Insights & Summary Table")
-        gender_ct = pd.crosstab(filtered_df['Gender_KH'], columns='Candidate Count')
-        gender_ct['Percentage (%)'] = (gender_ct['Candidate Count'] / total_candidates * 100).round(2)
-        gender_ct.loc['Total'] = [total_candidates, 100.0]
-        
         st.dataframe(gender_ct.style.format({'Candidate Count': '{:,.0f}', 'Percentage (%)': '{:.2f}%'}), use_container_width=True)
         
         st.info(f"""
@@ -214,21 +366,7 @@ with tab1:
         
     with col_right:
         st.markdown("#### Interactive Gender Visualization")
-        gender_counts = filtered_df['Gender_KH'].value_counts().reset_index()
-        gender_counts.columns = ['Gender_KH', 'Count']
-        
-        fig_gender = px.pie(
-            gender_counts, 
-            names='Gender_KH', 
-            values='Count',
-            hole=0.4,
-            title='Overall Gender Share (ប្រុស vs ស្រី)',
-            color='Gender_KH',
-            color_discrete_map={'ប្រុស': '#1f77b4', 'ស្រី': '#e07a5f'}
-        )
-        fig_gender.update_traces(textinfo='percent+label', textfont_size=14, textfont_color='black')
-        fig_gender.update_layout(height=380, margin=dict(t=40, b=20, l=20, r=20))
-        st.plotly_chart(fig_gender, use_container_width=True)
+        st.plotly_chart(fig_gender, use_container_width=True, key="tab1_fig_gender")
 
 # -----------------------------------------------------------------------------
 # TAB 2: OCCUPATION (មុខរបរ)
@@ -240,32 +378,11 @@ with tab2:
     
     with col_left:
         st.markdown("#### Occupation Summary Table (KH)")
-        occ_ct = pd.crosstab(filtered_df['Occupation_KH'], filtered_df['Gender_KH'], margins=True, margins_name='Total')
-        for col in ['ប្រុស', 'ស្រី']:
-            if col not in occ_ct.columns:
-                occ_ct[col] = 0
-        occ_ct = occ_ct[['ប្រុស', 'ស្រី', 'Total']].sort_values(by='Total', ascending=False)
-        
         st.dataframe(occ_ct.style.format('{:,.0f}'), use_container_width=True, height=450)
         
     with col_right:
         st.markdown("#### Occupation Visualization per Gender")
-        occ_chart_df = filtered_df.groupby(['Occupation_KH', 'Gender_KH']).size().reset_index(name='Count')
-        top_occs = occ_ct.drop('Total').head(8).index.tolist()
-        occ_chart_df = occ_chart_df[occ_chart_df['Occupation_KH'].isin(top_occs)]
-        
-        fig_occ = px.bar(
-            occ_chart_df,
-            y='Occupation_KH',
-            x='Count',
-            color='Gender_KH',
-            barmode='stack',
-            orientation='h',
-            title='Top Certified Occupations by Gender (មុខរបរ)',
-            color_discrete_map={'ប្រុស': '#1f77b4', 'ស្រី': '#e07a5f'}
-        )
-        fig_occ.update_layout(yaxis={'categoryorder':'total ascending'}, height=450, yaxis_title='', xaxis_title='Candidate Count')
-        st.plotly_chart(fig_occ, use_container_width=True)
+        st.plotly_chart(fig_occ, use_container_width=True, key="tab2_fig_occ")
 
 # -----------------------------------------------------------------------------
 # TAB 3: ASSESSMENT CENTER (AT)
@@ -277,30 +394,11 @@ with tab3:
     
     with col_left:
         st.markdown("#### Assessment Center Summary Table (KH)")
-        at_ct = pd.crosstab(filtered_df['AT_KH'], filtered_df['Gender_KH'], margins=True, margins_name='Total')
-        for col in ['ប្រុស', 'ស្រី']:
-            if col not in at_ct.columns:
-                at_ct[col] = 0
-        at_ct = at_ct[['ប្រុស', 'ស្រី', 'Total']].sort_values(by='Total', ascending=False)
-        
         st.dataframe(at_ct.style.format('{:,.0f}'), use_container_width=True, height=450)
         
     with col_right:
         st.markdown("#### Assessment Center Visualization per Gender")
-        at_chart_df = filtered_df.groupby(['AT_KH', 'Gender_KH']).size().reset_index(name='Count')
-        
-        fig_at = px.bar(
-            at_chart_df,
-            y='AT_KH',
-            x='Count',
-            color='Gender_KH',
-            barmode='stack',
-            orientation='h',
-            title='Assessment Centers by Gender (មជ្ឈមណ្ឌលវាយតម្លៃសមត្ថភាព)',
-            color_discrete_map={'ប្រុស': '#1f77b4', 'ស្រី': '#e07a5f'}
-        )
-        fig_at.update_layout(yaxis={'categoryorder':'total ascending'}, height=450, yaxis_title='', xaxis_title='Candidate Count')
-        st.plotly_chart(fig_at, use_container_width=True)
+        st.plotly_chart(fig_at, use_container_width=True, key="tab3_fig_at")
 
 # -----------------------------------------------------------------------------
 # TAB 4: NATIONAL QUALIFICATION (NQ)
@@ -312,29 +410,11 @@ with tab4:
     
     with col_left:
         st.markdown("#### Qualification Level Summary Table (KH)")
-        nq_ct = pd.crosstab(filtered_df['NQ_KH'], filtered_df['Gender_KH'], margins=True, margins_name='Total')
-        for col in ['ប្រុស', 'ស្រី']:
-            if col not in nq_ct.columns:
-                nq_ct[col] = 0
-        nq_ct = nq_ct[['ប្រុស', 'ស្រី', 'Total']].sort_values(by='Total', ascending=False)
-        
         st.dataframe(nq_ct.style.format('{:,.0f}'), use_container_width=True)
         
     with col_right:
         st.markdown("#### Qualification Level Visualization per Gender")
-        nq_chart_df = filtered_df.groupby(['NQ_KH', 'Gender_KH']).size().reset_index(name='Count')
-        
-        fig_nq = px.bar(
-            nq_chart_df,
-            x='NQ_KH',
-            y='Count',
-            color='Gender_KH',
-            barmode='group',
-            title='National Qualification Levels by Gender (កម្រិតសញ្ញាបត្រ)',
-            color_discrete_map={'ប្រុស': '#1f77b4', 'ស្រី': '#e07a5f'}
-        )
-        fig_nq.update_layout(height=400, xaxis_title='', yaxis_title='Candidate Count')
-        st.plotly_chart(fig_nq, use_container_width=True)
+        st.plotly_chart(fig_nq, use_container_width=True, key="tab4_fig_nq")
 
 # -----------------------------------------------------------------------------
 # TAB 5: SPONSOR (ដៃគូឧបត្ថម្ភ)
@@ -346,30 +426,13 @@ with tab5:
     
     with col_left:
         st.markdown("#### Sponsor Summary Table")
-        sp_ct = pd.crosstab(filtered_df['Sponsors'], filtered_df['Gender_KH'], margins=True, margins_name='Total')
-        for col in ['ប្រុស', 'ស្រី']:
-            if col not in sp_ct.columns:
-                sp_ct[col] = 0
-        sp_ct = sp_ct[['ប្រុស', 'ស្រី', 'Total']].sort_values(by='Total', ascending=False)
-        
         st.dataframe(sp_ct.style.format('{:,.0f}'), use_container_width=True)
         
     with col_right:
         st.markdown("#### Sponsor Visualization per Gender")
-        sp_chart_df = filtered_df.groupby(['Sponsors', 'Gender_KH']).size().reset_index(name='Count')
-        
-        fig_sp = px.bar(
-            sp_chart_df,
-            x='Sponsors',
-            y='Count',
-            color='Gender_KH',
-            barmode='stack',
-            title='Sponsorship Distribution by Gender (ដៃគូឧបត្ថម្ភ)',
-            color_discrete_map={'ប្រុស': '#1f77b4', 'ស្រី': '#e07a5f'}
-        )
-        fig_sp.update_layout(height=400, xaxis_title='', yaxis_title='Candidate Count')
-        st.plotly_chart(fig_sp, use_container_width=True)
+        st.plotly_chart(fig_sp, use_container_width=True, key="tab5_fig_sp")
 
 # Footer
 st.markdown("---")
 st.caption("RPL Dashboard Streamlit Application | Cross-platform | Data source: Date_Committee_Meeting | Created for TGI-DSA")
+
