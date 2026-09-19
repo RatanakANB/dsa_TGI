@@ -106,10 +106,10 @@ st.markdown('<div class="main-header">RPL Dashboard - Interactive Data Analytics
 st.markdown('<div class="sub-header">Data Insights & Visualizations Filtered by Date_Committee_Meeting</div>', unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# SIDEBAR INTERACTIVE FILTERS (4 COMMITTEE MEETING DATE FILTERS)
+# SIDEBAR INTERACTIVE FILTERS (DATE & GENDER FILTERS)
 # -----------------------------------------------------------------------------
-st.sidebar.header("Interactive Date Filters")
-st.sidebar.markdown("Filter all 5 findings by **Date_Committee_Meeting** attributes:")
+st.sidebar.header("Interactive Dashboard Filters")
+st.sidebar.markdown("Filter all 5 findings by **Date_Committee_Meeting** & **Gender**:")
 
 # Filter 1: Committee Meeting Specific Date [Committee_Meeting(date)]
 st.sidebar.subheader("1. Specific Meeting Date")
@@ -155,6 +155,19 @@ selected_months = st.sidebar.multiselect(
     default=available_months
 )
 
+# Filter 5: Gender Filter (Male / Female) [Gender_KH]
+st.sidebar.subheader("5. Gender Filter")
+gender_options_map = {
+    "Male (ប្រុស)": "ប្រុស",
+    "Female (ស្រី)": "ស្រី"
+}
+selected_gender_labels = st.sidebar.multiselect(
+    "Select Gender(s)",
+    options=list(gender_options_map.keys()),
+    default=list(gender_options_map.keys())
+)
+selected_genders = [gender_options_map[g] for g in selected_gender_labels]
+
 # Reset Filters Button
 if st.sidebar.button("Reset All Filters"):
     st.rerun()
@@ -166,13 +179,14 @@ mask = (
     (df_cleaned['CM_Date_Str'].isin(selected_date_strings)) &
     (df_cleaned['CM_Year'].isin(selected_years)) &
     (df_cleaned['CM_Quarter'].isin(selected_quarters)) &
-    (df_cleaned['CM_Month_Name'].isin(selected_months))
+    (df_cleaned['CM_Month_Name'].isin(selected_months)) &
+    (df_cleaned['Gender_KH'].isin(selected_genders))
 )
 
 filtered_df = df_cleaned[mask].copy()
 
 if filtered_df.empty:
-    st.warning("No records match the selected Committee Meeting date filter criteria. Please adjust your filters in the sidebar.")
+    st.warning("No records match the selected filter criteria. Please adjust your date and gender filters in the sidebar.")
     st.stop()
 
 # -----------------------------------------------------------------------------
