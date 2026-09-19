@@ -12,7 +12,7 @@ import plotly.express as px
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="RPL Dashboard - Interactive Analytics",
-    layout="centered",
+    layout="wide",
     initial_sidebar_state="expanded"
 )
 
@@ -28,12 +28,15 @@ st.markdown("""
     .main-header {
         font-size: 2.2rem;
         font-weight: 700;
+        line-height: 1.3;
         color: #1f77b4;
+        margin-top: 0.5rem;
         margin-bottom: 0.2rem;
     }
     
     .sub-header {
         font-size: 1.05rem;
+        line-height: 1.4;
         color: #6c757d;
         margin-bottom: 1.5rem;
     }
@@ -45,8 +48,8 @@ st.markdown("""
 
     .block-container {
         width: 100%;
-        max-width: 1400px;
-        padding-top: 1.25rem;
+        max-width: 100%;
+        padding-top: 3.5rem;
         padding-bottom: 2rem;
     }
 
@@ -57,7 +60,7 @@ st.markdown("""
         }
     }
 </style>
-""", unsafe_allow_html=True)
+""",unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # DATA LOADING & PREPROCESSING (CROSS-PLATFORM & DYNAMIC DATE FETCHING)
